@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "health-hr-analyzer"
+version = "0.1.0"
+description = "Local-only Apple Health CSV analyzer for >threshold heart-rate incidents with workout classification."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Graham Green" }
+]
+dependencies = [
+  "pandas>=2.1",
+  "numpy>=1.26",
+  "matplotlib>=3.8",
+  "python-dateutil>=2.8",
+  "pyyaml>=6.0",
+]
+
+[project.scripts]
+health-hr-analyzer = "health_hr_analyzer.cli:main"
+
+[tool.setuptools]
+packages = ["health_hr_analyzer"]

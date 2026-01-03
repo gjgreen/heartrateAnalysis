@@ -1,0 +1,104 @@
+# Sample schema override configuration for Apple Health HR Analyzer
+# Save as: config.sample.yaml
+#
+# This file lets you explicitly tell the analyzer which files/columns to use when
+# the CSV schema is unclear or varies by exporter.
+#
+# Notes:
+# - Paths can be absolute or relative to your working directory.
+# - If you provide `files.*.path`, the analyzer should use those files directly.
+# - If you omit paths, the analyzer should attempt auto-discovery and only use
+#   these mappings as fallbacks (implementation choice).
+
+version: 1
+
+analysis:
+  # Choose ONE approach:
+  # 1) Relative lookback:
+  months: 9
+  # 2) Absolute dates (uncomment to use):
+  # start: "2025-04-02"
+  # end: "2026-01-02"
+  #
+  # If timestamps in the export are naive (no timezone), treat them as this timezone.
+  # Use an IANA name like "America/Los_Angeles".
+  assume_timezone: "America/Los_Angeles"
+
+heart_rate:
+  threshold_bpm: 140
+  gap_seconds: 120
+  # Optional: drop ultra-short incidents (0 keeps single-sample spikes)
+  min_duration_seconds: 0
+
+files:
+  # Heart rate samples CSV
+  heart_rate:
+    # If your export has multiple HR files, you can provide a list instead (implementation choice),
+    # or point to a single "all data" CSV that includes HR rows.
+    path: "./data/HeartRate.csv"
+    # Column mapping options (use the ones your CSV actually contains):
+    columns:
+      # Common: startDate / endDate (Apple Health style)
+      start_time: "startDate"
+      end_time: "endDate"         # optional; ok if absent
+      bpm: "value"
+      # Optional metadata fields
+      source: "sourceName"        # device/app name (optional)
+      unit: "unit"                # should be "count/min" or similar (optional)
+
+  # Workouts CSV (explicit workout sessions)
+  workouts:
+    path: "./data/Workouts.csv"
+    columns:
+      start_time: "startDate"
+      end_time: "endDate"
+      workout_type: "workoutActivityType"
+      # Optional metadata
+      source: "sourceName"
+
+  # Optional activity signals used for workout inference if explicit workouts are missing.
+  # If present, they can help classify incidents with medium/low confidence.
+  activity_signals:
+    # Active Energy Burned (kcal)
+    active_energy:
+      path: "./data/ActiveEnergyBurned.csv"
+      columns:
+        start_time: "startDate"
+        end_time: "endDate"
+        value: "value"
+        unit: "unit"
+    # Step Count (count)
+    step_count:
+      path: "./data/StepCount.csv"
+      columns:
+        start_time: "startDate"
+        end_time: "endDate"
+        value: "value"
+        unit: "unit"
+
+classification:
+  # If true, classify ambiguous cases as "unknown" instead of "non_workout"
+  prefer_unknown_when_uncertain: true
+
+  # Overlap rule for explicit workouts: incident is "workout" if it overlaps >= this many seconds
+  workout_overlap_min_seconds: 1
+
+  # Inference settings (only used when explicit workout intervals are missing/unreliable)
+  inference:
+    enabled: true
+    # Require at least N signals to mark as inferred workout at "medium" confidence
+    medium_confidence_min_signals: 2
+    # Minimum continuous window (seconds) of elevated activity to consider a workout window
+    min_window_seconds: 600
+
+output:
+  output_dir: "./output"
+  incidents_csv_name: "incidents_over_140.csv"
+  plot_png_name: "incidents_over_140.png"
+  # Optional outputs
+  write_run_summary_json: true
+  run_summary_json_name: "run_summary.json"
+
+logging:
+  level: "INFO"
+  redact_logs: true
